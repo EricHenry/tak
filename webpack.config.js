@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: './src/index.js',
   devtool: 'inline-source-map',
   devServer: {
     contentBase: './dist'
@@ -10,9 +10,12 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/
+        test: /\.elm$/,
+        exclude: [/elm-stuff/, /node_modules/],
+        use: {
+          loader: 'elm-webpack-loader',
+          options: { debug: true, warn: true }
+        }
       },
       {
         test: /\.scss$/,
@@ -23,9 +26,6 @@ module.exports = {
         ]
       }
     ]
-  },
-  resolve: {
-    extensions: [ ".tsx", ".ts", ".js" ]
   },
   plugins: [
     new  HtmlWebpackPlugin({
