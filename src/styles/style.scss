@@ -36,8 +36,35 @@ body {
   background-color: lightblue;
 }
 
+.main-right {
+  grid-area: main-right;
+}
+
 .tile {
   border: 1px solid red;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-areas: "stack-head stacked-pieces"
+}
+
+.stack-head {
+  grid-area: stack-head;
+
+}
+
+.stacked-pieces {
+  grid-area: stacked-pieces;
+  display: grid;
+  justify-content: center;
+  align-content: flex-end;
+}
+
+.stacked-piece {
+  background-color: black;
+  max-height: 5px;
+  max-width: 5px;
+  padding: 1px;
+  margin: 2px;
 }
 
 .action {

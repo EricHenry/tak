@@ -1,6 +1,22 @@
 import Html exposing (Html, Attribute, button, div, h1, text)
 import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick)
+import Maybe exposing (withDefault)
+{-| Find the first element that satisfies a predicate and return
+Just that element. If none match, return Nothing.
+    find (\num -> num > 5) [2, 4, 6, 8] == Just 6
+-}
+find : (a -> Bool) -> List a -> Maybe a
+find predicate list =
+    case list of
+        [] ->
+            Nothing
+
+        first::rest ->
+            if predicate first then
+                Just first
+            else
+                find predicate rest
 
 main =
   Html.beginnerProgram { model = model, view = view, update = update }
@@ -20,12 +36,17 @@ type alias Tile =
 
 type alias Model = 
   { action : Action
+  , chosenTile : Tile
   , tiles : List Tile 
   }
+
+defaultTile : Tile
+defaultTile = Tile 0 0 []
 
 model : Model
 model = 
   { action = NoOp
+  , chosenTile = Tile 0 0 []
   , tiles = initTiles 25 
   }
 
@@ -38,20 +59,21 @@ initTiles n =
 decrementTile : Int -> Tile -> Tile
 decrementTile id t =
   if t.id == id then
-    { t | count = t.count - 1 }
+    { t | pieces = List.drop 1 t.pieces }
   else 
     t
 
 incrementTile : Int -> Tile -> Tile
 incrementTile id t =
   if t.id == id then
-    { t | count = t.count + 1 }
+    { t | pieces = Piece "black" :: t.pieces }
   else 
     t
 
 type Msg 
       = Increment 
       | Decrement  
+      | ShowTile Int
       | UpdateCount Int
 
 update : Msg -> Model -> Model
@@ -67,6 +89,13 @@ update msg model =
           action = Minus
       }
 
+    ShowTile tID -> 
+    { model |
+        chosenTile = model.tiles
+          |> find (\t -> t.id == tID) 
+          |> Maybe.withDefault defaultTile
+    }
+
     UpdateCount id -> 
       if model.action == Add then
         { model |
@@ -79,8 +108,18 @@ update msg model =
             tiles = List.map (decrementTile id) model.tiles 
         }
       else 
-        model
-        
+        { model |
+            chosenTile = model.tiles
+              |> find (\t -> t.id == id) 
+              |> Maybe.withDefault defaultTile
+        }
+
+displayChosenTile : Tile -> Html Msg
+displayChosenTile mT = 
+  if mT.id /= 0 then
+   div [] [ mT |> toString |> text ]
+  else
+    div [] []
 
 -- Take anything as a parameter and return an Html msg
 createGameTile : Tile -> Html Msg
@@ -89,10 +128,14 @@ createGameTile t =
     [ class "tile" 
     , id <| toString t.id
     , onClick <| UpdateCount t.id
-    ] 
-    [ text <| toString <| t.count
-    , div [ class "stack-head" ] []
-    , div [ class "stack" ] []
+    ]
+    [
+    div 
+      [ class "stack-head" ] 
+      [ text <| toString <| List.length t.pieces ]
+    , t.pieces 
+        |> List.map (\p -> div [ class "stacked-piece" ] []) 
+        |> div [ class "stacked-pieces" ] 
     ]
 
 -- VIEW
@@ -106,6 +149,11 @@ view model =
       [ div 
         [ class "game-board" ]
         <| List.map createGameTile model.tiles
+      , div
+        [ class "main-right" ]
+        [
+          displayChosenTile model.chosenTile
+        ]
       ]
     , div [ class "footer" ]
       [ div 
