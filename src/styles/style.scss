@@ -14,6 +14,11 @@ body {
     "footer"  
 }
 
+.header {
+  grid-area: header;
+  text-align: center;
+}
+
 .main {
   grid-area: main;
   display: grid;
@@ -29,4 +34,19 @@ body {
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
   background-color: lightblue;
+}
+
+.tile {
+  border: 1px solid red;
+}
+
+.action {
+  margin: 10px;
+}
+
+.footer {
+  grid-area: footer;
+  display: flex;
+  justify-content: center;
+  align-content: center;
 }
