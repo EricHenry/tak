@@ -2,21 +2,22 @@ import Html exposing (Html, Attribute, button, div, h1, text)
 import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick)
 import Maybe exposing (withDefault)
+
 {-| Find the first element that satisfies a predicate and return
 Just that element. If none match, return Nothing.
     find (\num -> num > 5) [2, 4, 6, 8] == Just 6
 -}
 find : (a -> Bool) -> List a -> Maybe a
 find predicate list =
-    case list of
-        [] ->
-            Nothing
+  case list of
+    [] ->
+        Nothing
 
-        first::rest ->
-            if predicate first then
-                Just first
-            else
-                find predicate rest
+    first::rest ->
+        if predicate first then
+            Just first
+        else
+            find predicate rest
 
 main =
   Html.beginnerProgram { model = model, view = view, update = update }
@@ -31,6 +32,7 @@ type alias Piece =
 type alias Tile = 
   { count : Int
   , id : Int
+  , highlight: Bool
   , pieces: List Piece
   }
 
@@ -41,99 +43,144 @@ type alias Model =
   }
 
 defaultTile : Tile
-defaultTile = Tile 0 0 []
+defaultTile = initTile 0 
+
+initTile : Int -> Tile
+initTile id = Tile 0 id False []
+
+defaultPiece : Piece
+defaultPiece = Piece "black"
 
 model : Model
 model = 
   { action = NoOp
-  , chosenTile = Tile 0 0 []
+  , chosenTile = defaultTile 
   , tiles = initTiles 25 
   }
 
 initTiles : Int -> List Tile
 initTiles n = 
-  List.map (\ i -> Tile 0 i []) <| List.range 1 n
+  List.map (\ i -> Tile 0 i False []) <| List.range 1 n
 
 -- UPDATE
 
 decrementTile : Int -> Tile -> Tile
 decrementTile id t =
   if t.id == id then
-    { t | pieces = List.drop 1 t.pieces }
+    let
+      p = List.drop 1 t.pieces
+    in
+      { t | 
+          pieces = p,
+          count = List.length p
+      }
   else 
     t
 
 incrementTile : Int -> Tile -> Tile
 incrementTile id t =
   if t.id == id then
-    { t | pieces = Piece "black" :: t.pieces }
+    let
+      p = defaultPiece :: t.pieces
+    in
+      { t | 
+          pieces = p,
+          count = List.length p
+      }
   else 
     t
 
+getChoiceDisplay : Int -> List Tile -> Tile
+getChoiceDisplay id tList = 
+  tList
+    |> find (\t -> t.id == id) 
+    |> Maybe.withDefault defaultTile
+  
 type Msg 
       = Increment 
       | Decrement  
-      | ShowTile Int
+      | HideTileInfo
+      | ShowTileInfo Int
       | UpdateCount Int
 
 update : Msg -> Model -> Model
 update msg model =
   case msg of
-    Increment ->
-      { model | 
-          action = Add
+    Increment       -> 
+      { model | action = Add }
+    Decrement       -> 
+      { model | action = Minus }
+    ShowTileInfo id -> 
+      { model |
+          chosenTile = model.tiles
+            |> find (\t -> t.id == id) 
+            |> Maybe.withDefault defaultTile
       }
-
-    Decrement ->
-      { model | 
-          action = Minus
-      }
-
-    ShowTile tID -> 
-    { model |
-        chosenTile = model.tiles
-          |> find (\t -> t.id == tID) 
-          |> Maybe.withDefault defaultTile
-    }
-
-    UpdateCount id -> 
-      if model.action == Add then
-        { model |
-            action = NoOp,
-            tiles = List.map (incrementTile id) model.tiles 
-        }
-      else if model.action == Minus then
-        { model |
-            action = NoOp,
-            tiles = List.map (decrementTile id) model.tiles 
-        }
-      else 
-        { model |
-            chosenTile = model.tiles
-              |> find (\t -> t.id == id) 
-              |> Maybe.withDefault defaultTile
-        }
+    HideTileInfo    -> 
+      { model | chosenTile = defaultTile }
+    UpdateCount id  -> 
+      let 
+        chosenPiece = getChoiceDisplay id
+      in
+        case model.action of
+          Add -> 
+            let 
+              t = List.map (incrementTile id) model.tiles
+              ct = chosenPiece t
+            in
+              { model | 
+                    action = NoOp
+                  , tiles = t 
+                  , chosenTile = ct
+              }
+          Minus -> 
+            let 
+              t = List.map (decrementTile id) model.tiles
+              ct = chosenPiece t
+            in
+              { model |
+                  action = NoOp
+                , tiles = t
+                , chosenTile = ct
+              }
+          NoOp ->
+            { model | chosenTile = chosenPiece model.tiles } 
+      
+chosenPieceDisplay : Piece -> Html Msg
+chosenPieceDisplay p = 
+  div [ class "display-list-piece" ] []
 
 displayChosenTile : Tile -> Html Msg
-displayChosenTile mT = 
-  if mT.id /= 0 then
-   div [] [ mT |> toString |> text ]
+displayChosenTile {id, pieces} = 
+  if id /= 0 then
+    div [] <| List.map chosenPieceDisplay pieces
   else
     div [] []
+
+highlightTileClass : Tile -> String
+highlightTileClass t =
+  if t.highlight then
+    "highlight "
+  else
+    ""
 
 -- Take anything as a parameter and return an Html msg
 createGameTile : Tile -> Html Msg
 createGameTile t = 
   div 
-    [ class "tile" 
+    [ t 
+        |> highlightTileClass
+        |> String.append "tile" 
+        |> class
     , id <| toString t.id
     , onClick <| UpdateCount t.id
     ]
-    [
-    div 
-      [ class "stack-head" ] 
-      [ text <| toString <| List.length t.pieces ]
-    , t.pieces 
+    [ text <| toString <| t.count
+    , List.take 1 t.pieces
+        |> List.map (\p -> div [ class "piece" ] [])
+        |> div [ class "stack-head" ] 
+    , List.tail t.pieces 
+        |> Maybe.withDefault []
         |> List.map (\p -> div [ class "stacked-piece" ] []) 
         |> div [ class "stacked-pieces" ] 
     ]
@@ -146,14 +193,11 @@ view model =
     [ h1 [ class "header" ] [ text "Tak.elm" ] 
     , div 
       [ class "main" ]
-      [ div 
-        [ class "game-board" ]
-        <| List.map createGameTile model.tiles
+      [ List.map createGameTile model.tiles 
+          |> div [ class "game-board" ] 
       , div
         [ class "main-right" ]
-        [
-          displayChosenTile model.chosenTile
-        ]
+        [ displayChosenTile model.chosenTile ]
       ]
     , div [ class "footer" ]
       [ div 
@@ -162,12 +206,15 @@ view model =
           [ class "action"
           , onClick Increment 
           ] 
-          [ text "+" ]
+          [ text "Add Road" ]
         , button 
           [ class "action" 
           , onClick Decrement 
           ] 
           [ text "-" ]
+        , button 
+            [ onClick HideTileInfo ]
+            [ text "Clear Chosen Tile" ]
         ]
       ]
     ]

@@ -38,6 +38,17 @@ body {
 
 .main-right {
   grid-area: main-right;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.display-list-piece {
+  height: 10px;
+  width: 45px;
+  margin: 2px;
+  background-color: black;
 }
 
 .tile {
@@ -47,9 +58,17 @@ body {
   grid-template-areas: "stack-head stacked-pieces"
 }
 
+
 .stack-head {
   grid-area: stack-head;
 
+  .piece {
+    background-color: black;
+    height: 15px;
+    width: 15px;
+    padding: 1px;
+    margin: 15px;
+  }
 }
 
 .stacked-pieces {
@@ -57,14 +76,14 @@ body {
   display: grid;
   justify-content: center;
   align-content: flex-end;
-}
 
-.stacked-piece {
-  background-color: black;
-  max-height: 5px;
-  max-width: 5px;
-  padding: 1px;
-  margin: 2px;
+  .stacked-piece {
+    background-color: black;
+    max-height: 5px;
+    max-width: 5px;
+    padding: 1px;
+    margin: 2px;
+  }
 }
 
 .action {
