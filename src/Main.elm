@@ -3,6 +3,7 @@ import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick)
 import Maybe exposing (withDefault)
 import Array exposing (Array)
+import Debug exposing (..)
 
 main =
   Html.beginnerProgram { model = model, view = view, update = update }
@@ -11,6 +12,7 @@ main =
 
 type Action 
     = Add 
+    | Move
     | NoOp
 
 type PieceType 
@@ -21,7 +23,7 @@ type PieceType
 type alias TileId =
     Int
 
-type alias Tile = 
+type alias Tile  = 
     (TileId, Pieces)
 
 type alias Tiles = 
@@ -58,11 +60,11 @@ defaultPiece = Piece "black" Road
 
 model : Model
 model = 
-  { action = NoOp
-  , chosenTile = -1 
-  , chosenPiece = (-1, -1)
-  , tilesWithPieces = Array.initialize 25 (always Array.empty)
-  }
+    { action = NoOp
+    , chosenTile = -1 
+    , chosenPiece = (-1, -1)
+    , tilesWithPieces = Array.initialize 25 (always Array.empty)
+    }
 
 -- UPDATE
 
@@ -71,18 +73,56 @@ addPiece pieces =
   Array.append (Array.fromList [defaultPiece]) pieces
 
 
+movePieces : TileId -> ChosenPiece -> Tiles -> Tiles
+movePieces toTile (fromTile, withPieces) tiles = 
+  let 
+    toTilesPieces = 
+      tiles
+        |> Array.get toTile
+        |> Maybe.withDefault Array.empty
+
+    fromPieces = 
+      tiles
+        |> Array.get fromTile
+        |> Maybe.withDefault Array.empty
+        |> Array.slice 0 (withPieces + 1)
+
+    updatedToTile = 
+      Array.append toTilesPieces fromPieces
+
+    piecesLength = 
+      tiles 
+        |> Array.get fromTile
+        |> Maybe.withDefault Array.empty
+        |> Array.length 
+
+    toPieces = 
+      tiles
+        |> Array.get fromTile
+        |> Maybe.withDefault Array.empty
+        |> Array.slice (withPieces + 1) piecesLength
+
+  in
+    tiles
+      |> Array.set toTile updatedToTile
+      |> Array.set fromTile toPieces
+
+
 type Msg 
       = StackPiece 
       | HideTileInfo
       | ShowTileInfo Int
       | UpdateCount Int
       | SelectPiece (Int, Int)
+      | MovePieces
 
 update : Msg -> Model -> Model
 update msg model =
   case msg of
     StackPiece-> 
       { model | action = Add }
+    MovePieces -> 
+      { model | action = Move }
     ShowTileInfo id -> 
       { model | chosenTile = id }
     SelectPiece (tId, pId) ->
@@ -103,6 +143,12 @@ update msg model =
                   |> addPiece 
               in
                 Array.set id p model.tilesWithPieces
+          }
+        Move ->
+          { model 
+          | tilesWithPieces = movePieces id model.chosenPiece model.tilesWithPieces 
+          , action = NoOp
+          , chosenTile = id
           }
         NoOp ->
           { model | chosenTile = id } 
@@ -174,6 +220,9 @@ view model =
           , onClick StackPiece 
           ] 
           [ text "Add Road" ]
+        , button 
+            [ onClick MovePieces ]
+            [ text "Move Pieces" ]
         , button 
             [ onClick HideTileInfo ]
             [ text "Clear Chosen Tile" ]
