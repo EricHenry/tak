@@ -3,7 +3,6 @@ import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick)
 import Maybe exposing (withDefault)
 import Array exposing (Array)
-import Debug exposing (..)
 
 main =
   Html.beginnerProgram { model = model, view = view, update = update }
